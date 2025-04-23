@@ -24,12 +24,12 @@ class WorkManagerServiceImp(
     private val settingsRepository: SettingsRepository,
     private val scope: CoroutineScope = CoroutineScope(Job() + Dispatchers.IO)
 ) : WorkManagerService {
-    private var period:Long = DEFAULT_REFRESH_PERIOD
+    private var period: Long = DEFAULT_REFRESH_PERIOD
     private var delayed: Long = FIST_LAUNCH_DELAY
 
     init {
         scope.launch {
-            settingsRepository.state.collect{ setting ->
+            settingsRepository.state.collect { setting ->
                 period = setting.periodic
                 delayed = setting.delayed
                 Log.i(TAG, "DataStoreService get data : period = $period | delayed $delayed")
@@ -39,12 +39,22 @@ class WorkManagerServiceImp(
     }
 
     private fun createConstraints(): Constraints {
+        return Constraints.Builder()
+            .setRequiredNetworkType(networkType = NetworkType.CONNECTED)
+            .build()
         // Реализуйте метод, возвращающий Constraints
         // В условиях укажите необходимость наличия интернет соединения.
     }
 
     private fun createRequest(repeat: Long, delayed: Long): PeriodicWorkRequest {
         val networkConstraints = createConstraints()
+        return PeriodicWorkRequestBuilder<RefreshWorker>(
+            repeatInterval = repeat,
+            repeatIntervalTimeUnit = TimeUnit.MINUTES
+        ).setConstraints(networkConstraints)
+            .setInitialDelay(delayed, TimeUnit.SECONDS)
+            .build()
+
         // Допишите реализацию метода и верните WorkRequest на периодическую задачу для RefreshWorker
         // Интервал запуска задачи (в минутах)  = repeat.
         // Отсрочка запуска задачи в (секундах) = delayed.
